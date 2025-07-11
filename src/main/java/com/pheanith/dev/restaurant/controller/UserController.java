@@ -21,6 +21,7 @@ public class UserController {
 	@GetMapping("/roles-permissions")
 	public ResponseEntity<?> getRoleAndPermission(Principal principal){
 		UserRolePermissionDTO userRolesAndPermissions = userService.getUserRolesAndPermissions(principal.getName());
+		System.out.println("this is roles and permissions: %s ".formatted(userRolesAndPermissions));
 		return ResponseEntity.ok(userRolesAndPermissions);
 	}
 
