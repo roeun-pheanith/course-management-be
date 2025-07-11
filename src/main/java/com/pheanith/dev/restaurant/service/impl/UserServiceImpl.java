@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -49,23 +50,29 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public UserRolePermissionDTO getUserRolesAndPermissions(String username) {
 		User user = findByUsername(username);
-		Set<Role> roles = user.getRoles();
-		Set<Permission> permissions = new HashSet<>();
-		roles.forEach(role -> {
-			Set<Permission> p1 = role.getPermissions();
-			permissions.addAll(p1);
+
+		Set<String> roles = new HashSet<>();
+		Set<String> permissions = new HashSet<>();
+		user.getRoles().forEach(role -> {
+			String currentRole = role.getName();
+			roles.add(currentRole);
+			Set<String> permiss = role.getPermissions().stream().map(per -> {
+				return per.getName();
+			}).collect(Collectors.toSet());
+			permissions.addAll(permiss);
 		});
-		
+
 		UserRolePermissionDTO rolesPermissions = new UserRolePermissionDTO();
 		rolesPermissions.setUsername(username);
 		rolesPermissions.setRoles(roles);
 		rolesPermissions.setPermissions(permissions);
+		
 		return rolesPermissions;
 	}
-	
+
 	private User findByUsername(String username) {
 		return userRepository.findByUsername(username)
-		.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found!"));
+				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "user not found!"));
 	}
 
 }
