@@ -53,7 +53,7 @@ public class AuthServiceImpl implements AuthService {
 		Set<String> strRoles = signupRequest.getRoles();
 
 		Set<Role> roles = new HashSet<>();
-		if (strRoles == null) {
+		if (strRoles == null || strRoles.isEmpty()) {
 			Role userRole = roleRepository.findByName(RoleEnum.USER.name())
 					.orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "ROLE was not found!"));
 			roles.add(userRole);
