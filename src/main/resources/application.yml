@@ -1,42 +1,42 @@
-#spring:
-#  servlet:
-#    multipart:
-#      max-file-size: 100MB
-#      max-request-size: 100MB
-#  datasource:
-#    url: jdbc:postgresql://localhost:5432/StudentManagement
-#    username: pheanith
-#    password: pheanith123
-#  jpa:
-#    open-in-view: false
-#    properties:
-#      hibernate:
-#        dialect: org.hibernate.dialect.PostgreSQLDialect
-#    hibernate:
-#      ddl-auto: update
-#  liquibase:
-#    change-log: classpath:/db/changelog/db.changelog-master.yml
-#    enabled: false
-#  thymeleaf:
-#   check-template-location: false
-#   
-#app:
-#  jwtSecret: ======================Pheanith==============================================
-#  jwtExpirationMs: 86400000
-#image:
-# upload:
-#  dir: uploads/images
-
 spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
   datasource:
-    url: jdbc:h2:mem:testdb
-    driverClassName: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:postgresql://localhost:5432/StudentManagement
+    username: pheanith
+    password: pheanith123
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
   liquibase:
     change-log: classpath:/db/changelog/db.changelog-master.yml
     enabled: false
+  thymeleaf:
+   check-template-location: false
+   
+app:
+  jwtSecret: ======================Pheanith==============================================
+  jwtExpirationMs: 86400000
+image:
+ upload:
+  dir: uploads/images
+
+#spring:
+#  datasource:
+#    url: jdbc:h2:mem:testdb
+#    driverClassName: org.h2.Driver
+#    username: sa
+#    password:
+#  jpa:
+#    database-platform: org.hibernate.dialect.H2Dialect
+#    hibernate:
+#      ddl-auto: create
+#  liquibase:
+#    change-log: classpath:/db/changelog/db.changelog-master.yml
+#    enabled: false
