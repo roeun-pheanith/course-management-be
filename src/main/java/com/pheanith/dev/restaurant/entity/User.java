@@ -36,8 +36,8 @@ public class User {
 	@ManyToMany(fetch = FetchType.EAGER)
 	private Set<Role> roles;
 
-	@ManyToMany(fetch = FetchType.EAGER)
-	private List<Enrollment> enrolls;
+	@OneToMany(mappedBy = "user")
+    private List<Enrollment> enrolls;
 
 	public User(String username, String email, String password) {
 		this.username = username;
