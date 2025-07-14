@@ -59,6 +59,10 @@ public class WebSecurityConfig {
 						.requestMatchers("/api/auth/**").permitAll()
 						.requestMatchers("/api/courses").permitAll()
 						.requestMatchers("/api/courses/**").permitAll()
+						.requestMatchers("/api/user").permitAll()
+						.requestMatchers("/api/user/**").permitAll()
+						.requestMatchers("/api/enrollments").permitAll()
+						.requestMatchers("/api/enrollments/**").permitAll()
 						.requestMatchers("/h2-console", "/h2-console/**").permitAll()
 						.requestMatchers("/", "/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
 						.requestMatchers("/api/v1/auth/**", "/v2/api-docs", "/v3/api-docs", "/v3/api-docs/**",
