@@ -1,7 +1,7 @@
 package com.pheanith.dev.restaurant.service.impl;
 
+import java.security.Principal;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.http.HttpStatus;
@@ -20,7 +20,6 @@ import com.pheanith.dev.restaurant.dto.SignupRequest;
 import com.pheanith.dev.restaurant.entity.Role;
 import com.pheanith.dev.restaurant.entity.User;
 import com.pheanith.dev.restaurant.exception.ApiException;
-import com.pheanith.dev.restaurant.exception.ResourceNotFoundException;
 import com.pheanith.dev.restaurant.repository.RoleRepository;
 import com.pheanith.dev.restaurant.repository.UserRepository;
 import com.pheanith.dev.restaurant.service.AuthService;
@@ -83,6 +82,14 @@ public class AuthServiceImpl implements AuthService {
 		return userRepository.findByUsername(name)
 				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found!"));
 
+	}
+
+	@Override
+	public Long getUserIdByPrincipal(Principal principal) {
+		String username = principal.getName();
+		return userRepository.findByUsername(username)
+					.map(User::getId)
+					.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found!" ));
 	}
 
 }
