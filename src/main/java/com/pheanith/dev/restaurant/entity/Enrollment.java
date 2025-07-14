@@ -33,4 +33,10 @@ public class Enrollment {
     private Double grade;
     
     private LocalDate enrollDate; // You can keep this if you want
+    
+    public Enrollment(User user, Course course) {
+        this.user = user;
+        this.course = course;
+        this.enrollDate = LocalDate.now();
+    }
 }
