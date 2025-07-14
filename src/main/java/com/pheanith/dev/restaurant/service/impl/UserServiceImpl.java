@@ -69,6 +69,7 @@ public class UserServiceImpl implements UserService {
 		});
 
 		UserRolePermissionDTO rolesPermissions = new UserRolePermissionDTO();
+		rolesPermissions.setId(user.getId());
 		rolesPermissions.setUsername(username);
 		rolesPermissions.setRoles(roles);
 		rolesPermissions.setPermissions(permissions);
