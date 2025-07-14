@@ -6,7 +6,10 @@ import lombok.Data;
 
 @Data
 public class EnrollmentDTO {
-	private Long userId;
-	private Long courseId;
-	private LocalDate enrollDate;
+    private Long userId;
+    private Long courseId;
+    private LocalDate enrollDate;
+    
+    // Add the new grade field
+    private Double grade;
 }
