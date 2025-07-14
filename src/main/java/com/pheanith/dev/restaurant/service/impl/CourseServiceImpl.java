@@ -1,51 +1,59 @@
 package com.pheanith.dev.restaurant.service.impl;
 
-import com.pheanith.dev.restaurant.dto.CourseRequestDTO;
-import com.pheanith.dev.restaurant.dto.CourseResponseDTO;
-import com.pheanith.dev.restaurant.exception.ResourceNotFoundException;
-import com.pheanith.dev.restaurant.mapper.CourseMapper;
-import com.pheanith.dev.restaurant.entity.Course;
-import com.pheanith.dev.restaurant.repository.CourseRepository;
-import com.pheanith.dev.restaurant.service.CourseService;
-import com.pheanith.dev.restaurant.spec.CourseSpec;
-import com.pheanith.dev.restaurant.spec.filter.CourseFilter;
-import com.pheanith.dev.restaurant.service.util.*;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.pheanith.dev.restaurant.dto.CourseAccessStatusDTO;
+import com.pheanith.dev.restaurant.dto.CourseRequestDTO;
+import com.pheanith.dev.restaurant.dto.CourseResponseDTO;
+import com.pheanith.dev.restaurant.entity.Course;
+import com.pheanith.dev.restaurant.entity.User;
+import com.pheanith.dev.restaurant.exception.ResourceNotFoundException;
+import com.pheanith.dev.restaurant.mapper.CourseMapper;
+import com.pheanith.dev.restaurant.repository.CourseRepository;
+import com.pheanith.dev.restaurant.repository.UserRepository;
+import com.pheanith.dev.restaurant.service.CourseService;
+import com.pheanith.dev.restaurant.service.EnrollmentService;
+import com.pheanith.dev.restaurant.service.util.PageUtil;
+import com.pheanith.dev.restaurant.spec.CourseSpec;
+import com.pheanith.dev.restaurant.spec.filter.CourseFilter;
+
+import lombok.RequiredArgsConstructor;
+
 @Service
-@RequiredArgsConstructor // Lombok to auto-inject final fields via constructor
+@RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
-    private final CourseMapper courseMapper; // Inject the MapStruct mapper
+    private final CourseMapper courseMapper;
+    private final UserRepository userRepository;
 
-    @Value("${image.upload.dir}") // Make sure this matches your application.properties/yml
+    @Value("${image.upload.dir}")
     private String uploadDir;
 
-    // Helper to save files and return relative path
     private String saveFile(MultipartFile file, String subDir) throws IOException {
         if (file == null || file.isEmpty()) {
-            return null; // Or throw an exception if file is mandatory
+            return null;
         }
-
         Path uploadPath = Paths.get(uploadDir, subDir).toAbsolutePath().normalize();
-        Files.createDirectories(uploadPath); // Create directories if they don't exist
-
+        Files.createDirectories(uploadPath);
         String originalFilename = file.getOriginalFilename();
         String fileExtension = "";
         if (originalFilename != null && originalFilename.contains(".")) {
@@ -54,12 +62,9 @@ public class CourseServiceImpl implements CourseService {
         String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
         Path filePath = uploadPath.resolve(uniqueFileName);
         Files.copy(file.getInputStream(), filePath);
-
-        // Return relative path from base upload dir
         return "/" + subDir + "/" + uniqueFileName;
     }
 
-    // Helper to delete files
     private void deleteFile(String filePath) {
         if (filePath != null && !filePath.isEmpty()) {
             try {
@@ -67,7 +72,6 @@ public class CourseServiceImpl implements CourseService {
                 Files.deleteIfExists(fileToDelete);
             } catch (IOException e) {
                 System.err.println("Failed to delete file: " + filePath + ", Error: " + e.getMessage());
-                // Log the error but don't rethrow, as it shouldn't stop the main operation
             }
         }
     }
@@ -75,12 +79,9 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional
     public CourseResponseDTO createCourseWithFiles(CourseRequestDTO courseDTO, MultipartFile thumbnailFile, MultipartFile videoFile) throws IOException {
-        Course course = courseMapper.toCourse(courseDTO); // Map DTO to entity
-
-        // Save files and set paths
+        Course course = courseMapper.toCourse(courseDTO);
         course.setThumbnailUrl(saveFile(thumbnailFile, "course/thumbnails"));
         course.setVideoUrl(saveFile(videoFile, "course/videos"));
-
         Course savedCourse = courseRepository.save(course);
         return courseMapper.toCourseResponseDTO(savedCourse);
     }
@@ -93,21 +94,16 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional
     public CourseResponseDTO updateCourseWithFiles(Long id, CourseRequestDTO courseDTO, MultipartFile thumbnailFile, MultipartFile videoFile) throws IOException {
-        Course existingCourse = getById(id); // Throws if not found
-
-        // Delete old files if new ones are provided
+        Course existingCourse = getById(id);
         if (thumbnailFile != null && !thumbnailFile.isEmpty()) {
-            deleteFile(existingCourse.getThumbnailUrl()); // Delete old thumbnail
-            existingCourse.setThumbnailUrl(saveFile(thumbnailFile, "course/thumbnails")); // Save new
+            deleteFile(existingCourse.getThumbnailUrl());
+            existingCourse.setThumbnailUrl(saveFile(thumbnailFile, "course/thumbnails"));
         }
         if (videoFile != null && !videoFile.isEmpty()) {
-            deleteFile(existingCourse.getVideoUrl()); // Delete old video
-            existingCourse.setVideoUrl(saveFile(videoFile, "course/videos")); // Save new
+            deleteFile(existingCourse.getVideoUrl());
+            existingCourse.setVideoUrl(saveFile(videoFile, "course/videos"));
         }
-
-        // Update other fields using MapStruct
         courseMapper.updateCourseFromDto(courseDTO, existingCourse);
-
         Course updatedCourse = courseRepository.save(existingCourse);
         return courseMapper.toCourseResponseDTO(updatedCourse);
     }
@@ -115,25 +111,23 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional
     public void delete(Long courseId) {
-        Course course = getById(courseId); // Throws if not found
-
-        // Delete associated files from storage
+        Course course = getById(courseId);
         deleteFile(course.getThumbnailUrl());
         deleteFile(course.getVideoUrl());
-
         courseRepository.delete(course);
     }
 
     @Override
     public Page<CourseResponseDTO> courseFilter(Map<String, String> params) {
+        // ... (existing filter logic) ...
         CourseFilter courseFilter = new CourseFilter();
         if (params.containsKey("title")) {
             courseFilter.setTitle(params.get("title"));
         }
-        if (params.containsKey("content")) { // Filtering by the new 'content' field
+        if (params.containsKey("content")) {
             courseFilter.setContent(params.get("content"));
         }
-        if (params.containsKey("description")) { // Keeping description filter if needed
+        if (params.containsKey("description")) {
             courseFilter.setDescription(params.get("description"));
         }
         if (params.containsKey("isFree")) {
@@ -145,25 +139,24 @@ public class CourseServiceImpl implements CourseService {
             pageLimit = Integer.parseInt(params.get(PageUtil.PAGE_LIMIT));
         }
 
-        int pageNumber = PageUtil.DEFAULT_PAGE_NUMBER; // Renamed for clarity
+        int pageNumber = PageUtil.DEFAULT_PAGE_NUMBER;
         if (params.containsKey(PageUtil.PAGE_NUMBER)) {
             pageNumber = Integer.parseInt(params.get(PageUtil.PAGE_NUMBER));
         }
-        Pageable pageable = PageUtil.getPageable(pageNumber, pageLimit); // Use getPageable
+        Pageable pageable = PageUtil.getPageable(pageNumber, pageLimit);
 
         CourseSpec courseSpec = new CourseSpec(courseFilter);
         return courseRepository.findAll(courseSpec, pageable).map(course -> {
-            // Map entity to DTO using MapStruct and then set full URLs for frontend
             CourseResponseDTO dto = courseMapper.toCourseResponseDTO(course);
             if (course.getThumbnailUrl() != null && !course.getThumbnailUrl().isEmpty()) {
-                dto.setThumbnailUrl("/api/courses/" + course.getId() + "/thumbnail"); // Dynamic URL for serving bytes
+                dto.setThumbnailUrl("/api/courses/" + course.getId() + "/thumbnail");
             } else {
-                dto.setThumbnailUrl(""); // Or a default placeholder
+                dto.setThumbnailUrl("");
             }
             if (course.getVideoUrl() != null && !course.getVideoUrl().isEmpty()) {
-                 dto.setVideoUrl("/api/courses/" + course.getId() + "/video"); // Dynamic URL for serving bytes
+                 dto.setVideoUrl("/api/courses/" + course.getId() + "/video");
             } else {
-                dto.setVideoUrl(""); // Or a default placeholder
+                dto.setVideoUrl("");
             }
             return dto;
         });
@@ -172,7 +165,7 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public List<CourseResponseDTO> getAllCourses() {
         return courseRepository.findAll().stream().map(courseMapper::toCourseResponseDTO)
-                .map(dto -> { // Post-process to add full URLs
+                .map(dto -> {
                     if (dto.getThumbnailUrl() != null && !dto.getThumbnailUrl().isEmpty()) {
                         dto.setThumbnailUrl("/api/courses/" + dto.getId() + "/thumbnail");
                     } else {
@@ -187,4 +180,12 @@ public class CourseServiceImpl implements CourseService {
                 })
                 .collect(Collectors.toList());
     }
+    
+    @Override
+    public CourseAccessStatusDTO getPublicCourseAccessStatus(Long courseId) {
+        return courseRepository.findById(courseId)
+                .map(course -> new CourseAccessStatusDTO(course.getIsFree()))
+                .orElse(new CourseAccessStatusDTO(false));
+    }
+
 }
